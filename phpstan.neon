@@ -1,0 +1,14 @@
+parameters:
+    level: 8
+    paths:
+        - src
+    excludePaths:
+        - src/Subscriber/ExampleBinlogSubscriber.php
+    ignoreErrors:
+        - '#Call to an undefined method think\\facade\\[a-zA-Z]+::[a-zA-Z]+\(\)#'
+        - '#Access to an undefined property think\\App::\$[a-zA-Z]+#'
+        - '#Function config not found#'
+        - '#Function runtime_path not found#'
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    reportUnmatchedIgnoredErrors: false

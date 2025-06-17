@@ -1,0 +1,54 @@
+{
+    "name": "yangweijie/think-binlog",
+    "description": "ThinkPHP MySQL Binlog监听扩展，支持后台运行、队列转发和事件订阅",
+    "type": "library",
+    "keywords": [
+        "thinkphp",
+        "mysql",
+        "binlog",
+        "replication",
+        "queue",
+        "event"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "yangweijie",
+            "email": "yangweijie@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "topthink/framework": "^8.0",
+        "krowinski/php-mysql-replication": "^8.0",
+        "topthink/think-queue": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "yangweijie\\ThinkBinlog\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "yangweijie\\ThinkBinlog\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "think": {
+            "services": [
+                "yangweijie\\ThinkBinlog\\Service"
+            ],
+            "config": {
+                "binlog": "config/binlog.php"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

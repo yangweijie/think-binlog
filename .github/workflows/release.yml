@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
+
+    - name: Run tests
+      run: composer test
+
+    - name: Create release archive
+      run: |
+        mkdir -p release
+        cp -r src config docs LICENSE README.md composer.json release/
+        cd release
+        tar -czf ../think-binlog-${GITHUB_REF#refs/tags/}.tar.gz .
+        cd ..
+        zip -r think-binlog-${GITHUB_REF#refs/tags/}.zip release/
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        body: |
+          ## 更新内容
+          
+          请查看 [CHANGELOG.md](CHANGELOG.md) 了解详细更新内容。
+          
+          ## 安装方式
+          
+          ```bash
+          composer require yangweijie/think-binlog:${{ github.ref }}
+          ```
+
+    - name: Upload Release Asset (tar.gz)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./think-binlog-${{ github.ref_name }}.tar.gz
+        asset_name: think-binlog-${{ github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload Release Asset (zip)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./think-binlog-${{ github.ref_name }}.zip
+        asset_name: think-binlog-${{ github.ref_name }}.zip
+        asset_content_type: application/zip
+
+  packagist:
+    needs: release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Update Packagist
+      run: |
+        curl -XPOST -H'content-type:application/json' \
+          'https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}' \
+          -d'{"repository":{"url":"https://github.com/yangweijie/think-binlog"}}'
