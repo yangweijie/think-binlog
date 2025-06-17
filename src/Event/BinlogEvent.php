@@ -9,6 +9,13 @@ use MySQLReplication\Event\DTO\WriteRowsDTO;
 use MySQLReplication\Event\DTO\UpdateRowsDTO;
 use MySQLReplication\Event\DTO\DeleteRowsDTO;
 use MySQLReplication\Event\DTO\QueryDTO;
+use MySQLReplication\Event\DTO\XidDTO;
+use MySQLReplication\Event\DTO\GTIDLogDTO;
+use MySQLReplication\Event\DTO\TableMapDTO;
+use MySQLReplication\Event\DTO\FormatDescriptionDTO;
+use MySQLReplication\Event\DTO\RotateDTO;
+use MySQLReplication\Event\DTO\BeginLoadQueryDTO;
+use MySQLReplication\Event\DTO\ExecuteLoadQueryDTO;
 
 /**
  * Binlog事件封装类
@@ -100,6 +107,67 @@ class BinlogEvent
                 ];
                 break;
 
+            case $this->event instanceof XidDTO:
+                $this->type = 'transaction_commit';
+                $this->data = [
+                    'xid' => $this->event->getXid(),
+                ];
+                break;
+
+            case $this->event instanceof GTIDLogDTO:
+                $this->type = 'gtid';
+                $this->data = [
+                    'gtid' => $this->event->getGtid(),
+                    'commit' => $this->event->getCommit(),
+                ];
+                break;
+
+            case $this->event instanceof TableMapDTO:
+                $this->type = 'table_map';
+                $this->database = $this->event->getDatabase();
+                $this->table = $this->event->getTable();
+                $this->data = [
+                    'table_id' => $this->event->getTableId(),
+                    'columns' => $this->event->getColumnsArray(),
+                ];
+                break;
+
+            case $this->event instanceof FormatDescriptionDTO:
+                $this->type = 'format_description';
+                $this->data = [
+                    'binlog_version' => $this->event->getBinlogVersion(),
+                    'server_version' => $this->event->getServerVersion(),
+                ];
+                break;
+
+            case $this->event instanceof RotateDTO:
+                $this->type = 'rotate';
+                $this->data = [
+                    'next_binlog' => $this->event->getNextBinlog(),
+                    'position' => $this->event->getPosition(),
+                ];
+                break;
+
+            case $this->event instanceof BeginLoadQueryDTO:
+                $this->type = 'begin_load_query';
+                $this->database = $this->event->getDatabase();
+                $this->data = [
+                    'file_id' => $this->event->getFileId(),
+                    'block_data' => $this->event->getBlockData(),
+                ];
+                break;
+
+            case $this->event instanceof ExecuteLoadQueryDTO:
+                $this->type = 'execute_load_query';
+                $this->database = $this->event->getDatabase();
+                $this->data = [
+                    'file_id' => $this->event->getFileId(),
+                    'start_pos' => $this->event->getStartPos(),
+                    'end_pos' => $this->event->getEndPos(),
+                    'dup_handling_flags' => $this->event->getDupHandlingFlags(),
+                ];
+                break;
+
             default:
                 $this->type = 'unknown';
                 $this->data = [];
@@ -184,7 +252,58 @@ class BinlogEvent
      */
     public function isQueryEvent(): bool
     {
-        return $this->type === 'query';
+        return in_array($this->type, ['query', 'begin_load_query', 'execute_load_query']);
+    }
+
+    /**
+     * 检查是否为事务事件
+     */
+    public function isTransactionEvent(): bool
+    {
+        return in_array($this->type, ['transaction_commit', 'gtid']);
+    }
+
+    /**
+     * 检查是否为DDL事件
+     */
+    public function isDDLEvent(): bool
+    {
+        if ($this->type !== 'query') {
+            return false;
+        }
+
+        $query = strtoupper(trim($this->getQuery()));
+        $ddlKeywords = ['CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'RENAME'];
+
+        foreach ($ddlKeywords as $keyword) {
+            if (strpos($query, $keyword) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查是否为DML事件
+     */
+    public function isDMLEvent(): bool
+    {
+        return $this->isDataChangeEvent();
+    }
+
+    /**
+     * 检查是否为系统事件
+     */
+    public function isSystemEvent(): bool
+    {
+        return in_array($this->type, [
+            'format_description',
+            'rotate',
+            'table_map',
+            'gtid',
+            'transaction_commit'
+        ]);
     }
 
     /**

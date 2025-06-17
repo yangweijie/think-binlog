@@ -24,7 +24,11 @@
         "topthink/think-queue": "^3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.0"
+        "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-mock": "^2.0",
+        "mockery/mockery": "^1.5",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -47,7 +51,18 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "pest",
+        "test:coverage": "pest --coverage",
+        "test:unit": "pest --testsuite=Unit",
+        "test:feature": "pest --testsuite=Feature",
+        "cs-fix": "php-cs-fixer fix",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "phpstan": "phpstan analyse",
+        "quality": [
+            "@cs-check",
+            "@phpstan",
+            "@test"
+        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true
